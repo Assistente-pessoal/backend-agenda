@@ -9,3 +9,4 @@ class AgendaApiApplication
 fun main(args: Array<String>) {
 	runApplication<AgendaApiApplication>(*args)
 }
+
