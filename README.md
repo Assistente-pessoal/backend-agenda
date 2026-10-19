@@ -1,6 +1,10 @@
-# agenda-api — Integração VOX
+# Agenda API
 
-API intermediária Kotlin/Spring Boot do módulo VOX.
+Backend Kotlin/Spring Boot da aplicação de agenda inteligente, incluindo o núcleo de lembretes e a integração VOX.
+
+## API Core
+
+O núcleo da API oferece cadastro de usuários, categorias padrão, criação e manutenção de lembretes, prioridades, recorrência, encerramento, histórico de concluídos, validações básicas e testes iniciais.
 
 ## Endpoint
 
@@ -23,6 +27,7 @@ Variáveis de ambiente:
 - `MONGODB_URI`: padrão `mongodb://localhost:27017/agenda`.
 - `VOX_AI_SERVICE_URL`: padrão `http://localhost:8000`.
 - `SERVER_PORT`: padrão `8080`.
+- `SERVER_ADDRESS`: padrão `0.0.0.0`.
 
 Com MongoDB e microserviço Python ligados, execute na pasta `agenda-api`:
 

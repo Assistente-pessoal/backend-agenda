@@ -25,4 +25,12 @@ class ApiExceptionHandler {
     @ExceptionHandler(ConstraintViolationException::class)
     fun handleConstraintViolation(ex: ConstraintViolationException): ResponseEntity<VoxApiError> =
         ResponseEntity.status(HttpStatus.BAD_REQUEST).body(VoxApiError(ex.message ?: "Os dados enviados são inválidos."))
+
+    @ExceptionHandler(NoSuchElementException::class)
+    fun handleNotFound(ex: NoSuchElementException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to (ex.message ?: "Não encontrado")))
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleBadRequest(ex: IllegalArgumentException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.badRequest().body(mapOf("error" to (ex.message ?: "Requisição inválida")))
 }
