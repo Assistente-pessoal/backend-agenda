@@ -29,7 +29,7 @@ Variáveis de ambiente:
 - `SERVER_PORT`: padrão `8080`.
 - `SERVER_ADDRESS`: padrão `0.0.0.0`.
 
-Com MongoDB e microserviço Python ligados, execute na pasta `agenda-api`:
+Com MongoDB e microserviço Python ligados, execute na raiz do projeto:
 
 ```bash
 ./gradlew bootRun
