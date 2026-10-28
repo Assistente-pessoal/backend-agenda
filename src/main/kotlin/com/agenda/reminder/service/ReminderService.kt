@@ -14,49 +14,42 @@ import org.springframework.stereotype.Service
 class ReminderService(
     private val reminderRepository: ReminderRepository,
     private val categoryRepository: CategoryRepository,
-    private val completionRepository: ReminderCompletionRepository
-)  {
+    private val completionRepository: ReminderCompletionRepository,
+) {
+    fun create(reminder: Reminder, ownerId: String): Reminder =
+        reminderRepository.save(ensureCategories(reminder.copy(ownerId = ownerId), ownerId))
 
-    fun create(reminder: Reminder): Reminder {
-        val withCategories = ensureCategories(reminder)
-        return reminderRepository.save(withCategories)
-    }
-
-    // RN1: todo lembrete precisa ter pelo menos uma categoria
-    private fun ensureCategories(reminder: Reminder): Reminder {
-        // Caso 1: lista vazia -> cai na categoria padrão "Geral"
+    private fun ensureCategories(reminder: Reminder, ownerId: String): Reminder {
         if (reminder.categoryIds.isEmpty()) {
-            val geral = categoryRepository.findByNameAndIsDefaultTrue("Geral")
+            val general = categoryRepository.findByNameAndIsDefaultTrue("Geral")
                 ?: throw IllegalStateException("Categoria padrão 'Geral' não encontrada")
-            return reminder.copy(categoryIds = setOf(geral.id!!))
+            return reminder.copy(categoryIds = setOf(requireNotNull(general.id)))
         }
-
-        // Caso 2: algum id não existe -> erro
-        val found = categoryRepository.findAllById(reminder.categoryIds)
-        if (found.size != reminder.categoryIds.size) {
-            throw IllegalArgumentException("Uma ou mais categorias não existem")
+        val found = categoryRepository.findAllById(reminder.categoryIds).toList()
+        if (found.size != reminder.categoryIds.size ||
+            found.any { !(it.isDefault && it.userId == null) && it.userId != ownerId }
+        ) {
+            throw IllegalArgumentException("Uma ou mais categorias não existem ou não pertencem ao usuário.")
         }
-
-        // Caso 3: tudo certo, devolve como veio
         return reminder
     }
-    fun list(status: ReminderStatus): List<Reminder> =
-        reminderRepository.findByStatus(status)
 
-    fun complete(id: String) {
-        val reminder = reminderRepository.findById(id)
-            .orElseThrow { NoSuchElementException("Lembrete não encontrado") }
+    fun list(status: ReminderStatus, ownerId: String): List<Reminder> =
+        reminderRepository.findByOwnerIdAndStatus(ownerId, status)
 
+    fun complete(id: String, ownerId: String) {
+        val reminder = reminderRepository.findByIdAndOwnerId(id, ownerId)
+            ?: throw NoSuchElementException("Lembrete não encontrado")
         if (reminder.recurrence == Recurrence.ONCE) {
             reminderRepository.save(reminder.copy(status = ReminderStatus.COMPLETED))
         } else {
-            completionRepository.save(ReminderCompletion(reminderId = id))
+            completionRepository.save(ReminderCompletion(reminderId = id, ownerId = ownerId))
         }
     }
-    fun update(id: String, request: UpdateReminderRequest): Reminder {
-        val current = reminderRepository.findById(id)
-            .orElseThrow { NoSuchElementException("Lembrete não encontrado") }
 
-        return reminderRepository.save(ensureCategories(request.applyTo(current)))
+    fun update(id: String, request: UpdateReminderRequest, ownerId: String): Reminder {
+        val current = reminderRepository.findByIdAndOwnerId(id, ownerId)
+            ?: throw NoSuchElementException("Lembrete não encontrado")
+        return reminderRepository.save(ensureCategories(request.applyTo(current), ownerId))
     }
 }

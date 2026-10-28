@@ -15,14 +15,14 @@ class ReminderServiceTest @Autowired constructor(
 ) {
     @Test
     fun `lembrete sem categoria cai em Geral`() {
-        val saved = service.create(Reminder(title = "Comprar pão"))
+        val saved = service.create(Reminder(title = "Comprar pão"), "test-user")
         assertEquals(1, saved.categoryIds.size)
     }
 
     @Test
     fun `categoria inexistente lança erro`() {
         assertFailsWith<IllegalArgumentException> {
-            service.create(Reminder(title = "x", categoryIds = setOf("id-que-nao-existe")))
+            service.create(Reminder(title = "x", categoryIds = setOf("id-que-nao-existe")), "test-user")
         }
     }
 }

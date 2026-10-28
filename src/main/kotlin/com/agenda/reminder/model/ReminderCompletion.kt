@@ -9,7 +9,6 @@ import java.time.Instant
 data class ReminderCompletion(
     @Id val id: String? = null,
     val reminderId: String,
-    // o Mongo apaga o documento 30 dias depois desta data
-    @Indexed(expireAfter = "30d")
-    val completedAt: Instant = Instant.now()
+    val ownerId: String? = null,
+    @Indexed(expireAfter = "30d") val completedAt: Instant = Instant.now(),
 )

@@ -1,6 +1,7 @@
 package com.agenda.vox
 
 import jakarta.validation.Valid
+import org.springframework.security.core.Authentication
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -18,6 +19,7 @@ class VoxController(
     @PostMapping("/transcriptions")
     fun createFromTranscription(
         @Valid @RequestBody request: VoxTranscriptionRequest,
+        authentication: Authentication,
     ): VoxTranscriptionResponse {
         val text = request.text.trim()
         if (text.isBlank()) {
@@ -40,6 +42,7 @@ class VoxController(
                 time = interpreted.time,
                 domain = interpreted.domain.ifBlank { "pessoal" },
                 priority = interpreted.priority.ifBlank { "média" },
+                ownerId = authentication.name,
             ),
         )
 

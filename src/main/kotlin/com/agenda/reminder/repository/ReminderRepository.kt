@@ -5,5 +5,6 @@ import com.agenda.reminder.model.ReminderStatus
 import org.springframework.data.mongodb.repository.MongoRepository
 
 interface ReminderRepository : MongoRepository<Reminder, String> {
-    fun findByStatus(status: ReminderStatus): List<Reminder>
+    fun findByOwnerIdAndStatus(ownerId: String, status: ReminderStatus): List<Reminder>
+    fun findByIdAndOwnerId(id: String, ownerId: String): Reminder?
 }

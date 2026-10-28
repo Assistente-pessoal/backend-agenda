@@ -4,8 +4,8 @@ import com.agenda.user.model.User
 import org.springframework.data.mongodb.repository.MongoRepository
 
 interface UserRepository : MongoRepository<User, String> {
-
-    fun findByEmail(email: String): User?
-
-    fun existsByEmail(email: String): Boolean
+    fun findByEmailNormalized(emailNormalized: String): User?
+    fun findByEmailIgnoreCase(email: String): User?
+    fun existsByEmailNormalized(emailNormalized: String): Boolean
+    fun existsByEmailIgnoreCase(email: String): Boolean
 }
