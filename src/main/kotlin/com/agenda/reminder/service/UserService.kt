@@ -30,8 +30,8 @@ class UserService(
             email = email,
             emailNormalized = email,
             password = requireNotNull(passwordEncoder.encode(request.password)) {
-            "Falha ao gerar o hash da senha."
-        },
+                "Falha ao gerar o hash da senha."
+            },
         )
         val saved = try {
             userRepository.save(user)
