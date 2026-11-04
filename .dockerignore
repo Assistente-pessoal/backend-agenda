@@ -1,4 +1,7 @@
 .gradle
+.git
+.env
+.env.*
 .idea
 .kotlin
 build

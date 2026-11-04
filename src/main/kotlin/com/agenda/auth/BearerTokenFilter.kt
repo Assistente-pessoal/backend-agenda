@@ -5,6 +5,10 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpHeaders
+import org.springframework.dao.DataAccessException
+import org.springframework.dao.DataAccessResourceFailureException
+import org.springframework.dao.RecoverableDataAccessException
+import org.springframework.dao.TransientDataAccessException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
@@ -23,13 +27,22 @@ class BearerTokenFilter(private val sessions: SessionService) : OncePerRequestFi
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val authorization = request.getHeader(HttpHeaders.AUTHORIZATION)
-        if (authorization == null) {
+        val authorizations = request.getHeaders(HttpHeaders.AUTHORIZATION).toList()
+        if (authorizations.isEmpty()) {
             filterChain.doFilter(request, response) // SecurityFilterChain devolve 401
             return
         }
-        val token = authorization.takeIf { it.startsWith("Bearer ") }?.removePrefix("Bearer ")
-        val userId = token?.let(sessions::resolveUserId)
+        val token = authorizations.singleOrNull()?.let(TokenCodec::fromAuthorizationHeader)
+        val userId = try {
+            token?.let(sessions::resolveUserId)
+        } catch (ex: DataAccessException) {
+            if (ex !is DataAccessResourceFailureException &&
+                ex !is TransientDataAccessException && ex !is RecoverableDataAccessException
+            ) throw ex
+            SecurityContextHolder.clearContext()
+            writeSecurityError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Não foi possível validar a sessão. Tente novamente mais tarde.")
+            return
+        }
         if (userId == null) {
             SecurityContextHolder.clearContext()
             writeSecurityError(response, HttpServletResponse.SC_UNAUTHORIZED, "Token inválido ou expirado.")

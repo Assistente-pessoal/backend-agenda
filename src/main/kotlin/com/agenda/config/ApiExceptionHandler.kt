@@ -2,6 +2,10 @@ package com.agenda.config
 
 import com.agenda.vox.VoxApiError
 import jakarta.validation.ConstraintViolationException
+import org.springframework.dao.DataAccessException
+import org.springframework.dao.DataAccessResourceFailureException
+import org.springframework.dao.RecoverableDataAccessException
+import org.springframework.dao.TransientDataAccessException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -11,6 +15,11 @@ import org.springframework.web.server.ResponseStatusException
 
 @RestControllerAdvice
 class ApiExceptionHandler {
+    @ExceptionHandler(DataAccessResourceFailureException::class, TransientDataAccessException::class, RecoverableDataAccessException::class)
+    fun handleDataAccess(@Suppress("UNUSED_PARAMETER") ex: DataAccessException): ResponseEntity<VoxApiError> =
+        ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(VoxApiError("O serviço de dados está indisponível. Tente novamente mais tarde."))
+
     @ExceptionHandler(ResponseStatusException::class)
     fun handleResponseStatus(ex: ResponseStatusException): ResponseEntity<VoxApiError> =
         ResponseEntity.status(ex.statusCode).body(VoxApiError(ex.reason ?: "A requisição não pôde ser concluída."))

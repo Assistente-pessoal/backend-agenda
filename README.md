@@ -79,19 +79,75 @@ curl -i -X POST -H "Authorization: Bearer $TOKEN" http://localhost:8080/auth/log
 
 **CORS** é relevante para clientes web em navegadores, **não** para requisições nativas do React Native. Para um painel web com origem `https://app.example.com`, use `AUTH_CORS_ALLOWED_ORIGINS=https://app.example.com`. Não configure curingas em produção.
 
-Para desenvolvimento, inicialize MongoDB e o microserviço Python e então execute:
+### Desenvolvimento local com Expo web
 
-```bash
-# Linux/macOS
-bash gradlew bootRun
-# Windows
-.\gradlew.bat bootRun
+Use **JDK 25** (incluindo `javac`) e MongoDB. Cadastro, login, logout e lembretes
+manuais funcionam sem o microserviço Python; apenas a interpretação VOX depende dele.
+
+Na pasta do backend:
+
+```powershell
+# Windows / PowerShell
+docker compose up -d mongo
+# Remove uma eventual origem antiga somente deste terminal para usar os padrões locais.
+Remove-Item Env:AUTH_CORS_ALLOWED_ORIGINS -ErrorAction SilentlyContinue
+.\gradlew.bat bootRun --args="--spring.profiles.active=local"
 ```
 
-Para testes:
+No Linux/macOS, depois de iniciar MongoDB:
+
+```bash
+env -u AUTH_CORS_ALLOWED_ORIGINS bash gradlew bootRun --args='--spring.profiles.active=local'
+```
+
+O perfil `local` permite **somente** `http://localhost:8081`, `http://localhost:8082`
+e seus equivalentes com `127.0.0.1`. Também usa cliente HTTP/1.1 para o Uvicorn local.
+Sem esse perfil, a lista de origens continua vazia por padrão. Em produção, configure
+`AUTH_CORS_ALLOWED_ORIGINS` explicitamente e não ative o perfil `local`.
+Uma variável explícita, inclusive vazia, substitui os padrões do perfil local.
+
+No terminal do frontend, mantenha `EXPO_PUBLIC_API_URL=http://localhost:8080` e inicie
+o Expo web na porta 8082. `localhost`, `127.0.0.1`, portas e protocolos diferentes
+são origens diferentes. Um celular físico precisa de uma URL alcançável por ele.
+
+Para verificar o backend e o preflight do login no PowerShell:
+
+```powershell
+curl.exe -i "http://localhost:8080/api/vox/health"
+curl.exe -i -X OPTIONS "http://localhost:8080/auth/login" -H "Origin: http://localhost:8082" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+```
+
+Ambos devem responder 200; o segundo deve incluir
+`Access-Control-Allow-Origin: http://localhost:8082`. Login com credenciais incorretas
+responde 401 JSON com esse cabeçalho, permitindo ao frontend mostrar a mensagem real.
+Health não garante que o MongoDB ou o serviço de interpretação estejam disponíveis.
+
+Para testes (MongoDB local na porta 27017 deve estar ativo):
 
 ```bash
 bash gradlew test
+```
+
+Os testes HTTP usam banco temporário próprio e verificam cadastro, duplicidade,
+contrato de login, restauração, revogação, isolamento entre contas e CORS.
+Não precisam do Python. Falhas de banco nas operações de autenticação são devolvidas
+como 503 JSON sem expor detalhes da conexão.
+
+### Imagem Docker
+
+O build e o runtime usam Java 25, alinhados ao toolchain do Gradle:
+
+```bash
+docker build -t synapse-backend .
+```
+
+Em redes que exigem proxy e CA corporativa, o Dockerfile aceita os secrets opcionais
+`proxy_ca` (certificado CA PEM oficial) e `gradle_properties` (configuração do proxy
+Java/Gradle). Eles não são copiados para a imagem; o truststore temporário é removido
+na mesma etapa do build. Mantenha a verificação TLS habilitada.
+
+```bash
+docker build --secret id=proxy_ca,src=/caminho/ca.pem --secret id=gradle_properties,src=/caminho/gradle.properties -t synapse-backend .
 ```
 
 ### Cuidados importantes de implantação

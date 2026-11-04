@@ -4,6 +4,7 @@ import com.agenda.user.dto.UserResponse
 import jakarta.validation.Valid
 import org.springframework.http.CacheControl
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.GetMapping
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 
 @RestController
 @RequestMapping("/auth")
@@ -29,7 +31,9 @@ class AuthController(
 
     @PostMapping("/logout")
     fun logout(@RequestHeader(HttpHeaders.AUTHORIZATION) authorization: String): ResponseEntity<Void> {
-        sessions.revoke(authorization.removePrefix("Bearer "))
+        val token = TokenCodec.fromAuthorizationHeader(authorization)
+            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido ou expirado.")
+        sessions.revoke(token)
         return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
     }
 }

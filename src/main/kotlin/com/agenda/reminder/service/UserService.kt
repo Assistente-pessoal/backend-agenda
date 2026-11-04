@@ -18,6 +18,10 @@ class UserService(
     private val passwordEncoder: PasswordEncoder,
 ) {
     fun create(request: CreateUserRequest): UserResponse {
+        val name = request.name.trim()
+        if (name.length !in 2..100) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "O nome deve ter entre 2 e 100 caracteres.")
+        }
         val email = request.email.trim().lowercase(Locale.ROOT)
         if (request.password.toByteArray(StandardCharsets.UTF_8).size > 72) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Senha muito longa (máximo de 72 bytes em UTF-8).")
@@ -26,7 +30,7 @@ class UserService(
             throw ResponseStatusException(HttpStatus.CONFLICT, "E-mail já cadastrado.")
         }
         val user = User(
-            name = request.name.trim(),
+            name = name,
             email = email,
             emailNormalized = email,
             password = requireNotNull(passwordEncoder.encode(request.password)) {
