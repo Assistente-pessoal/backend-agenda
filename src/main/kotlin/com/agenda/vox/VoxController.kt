@@ -1,8 +1,9 @@
 package com.agenda.vox
 
+import com.agenda.reminder.service.ReminderService
 import jakarta.validation.Valid
-import org.springframework.security.core.Authentication
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -14,7 +15,8 @@ import org.springframework.web.server.ResponseStatusException
 @RequestMapping("/api/vox")
 class VoxController(
     private val voxAiClient: VoxAiClient,
-    private val repository: VoxReminderRepository,
+    private val reminderService: ReminderService,
+    private val mapper: VoxReminderMapper,
 ) {
     @PostMapping("/transcriptions")
     fun createFromTranscription(
@@ -34,29 +36,19 @@ class VoxController(
             )
         }
 
-        val saved = repository.save(
-            VoxReminder(
-                text = text,
-                title = interpreted.title.trim(),
-                date = interpreted.date,
-                time = interpreted.time,
-                domain = interpreted.domain.ifBlank { "pessoal" },
-                priority = interpreted.priority.ifBlank { "média" },
-                ownerId = authentication.name,
-            ),
-        )
+        val saved = reminderService.create(mapper.toReminder(text, interpreted), authentication.name)
 
         return VoxTranscriptionResponse(
             id = saved.id ?: throw ResponseStatusException(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "O lembrete foi processado, mas não foi possível recuperar seu identificador.",
             ),
-            text = saved.text,
+            text = text,
             title = saved.title,
-            date = saved.date,
-            time = saved.time,
-            domain = saved.domain,
-            priority = saved.priority,
+            date = interpreted.date,
+            time = interpreted.time,
+            domain = interpreted.domain.ifBlank { "pessoal" },
+            priority = interpreted.priority.ifBlank { "média" },
         )
     }
 
